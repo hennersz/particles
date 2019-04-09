@@ -5,5 +5,4 @@ it('should explode into parts that sum to the original weight', () => {
   p.num = 4;
   const res = p.explode();
   expect(res.length).toEqual(3);
-  console.log(res);
 })

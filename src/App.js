@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import Particle from './Particle';
 import ForceLine from './ForceLine';
-import { pointDistance, getRandomFloat,getRandomInt } from './helpers';
+import { pointDistance, getRandomFloat,getRandomInt, lineId } from './helpers';
 import './App.css';
 
 
@@ -37,8 +37,8 @@ class App extends Component {
     const { width, height, ratio } = this.state;
     const x = getRandomInt(width * ratio);
     const y = getRandomInt(height * ratio);
-    const velX = getRandomFloat(5) - 2.5;
-    const velY = getRandomFloat(5) - 2.5;
+    const velX = getRandomFloat(1) - 0.5;
+    const velY = getRandomFloat(1) - 0.5;
     const weight = getRandomInt(9) + 2;
 
     return new Particle(x, y, velX, velY, weight, id!==undefined?id:this.currentId++);
@@ -58,7 +58,8 @@ class App extends Component {
         if(i === j) continue;
         const p2 = this.particles[j];
         const l = new ForceLine(p1.x, p2.x, p1.y, p2.y);
-        this.lines[`${p1.id}${p2.id}`] = l;
+        const lid = lineId(p1.id, p2.id);
+        this.lines[lid] = l;
       }
     }
     requestAnimationFrame(() => this.update());
@@ -76,17 +77,29 @@ class App extends Component {
         if(i === j) continue;
         let p2 = this.particles[j];
         p1.updateVelocityPoint(p2);
-        if(pointDistance(p1.x, p1.y, p2.x, p2.y)<p1.weight + p2.weight){
+        if(pointDistance(p1.x, p1.y, p2.x, p2.y)<p1.radius + p2.radius){
           if(p1.weight > p2.weight){
             p1.eat(p2);
-            this.particles[j] = this.createRandomParticle(p2.id);
           } else {
             p2.eat(p1);
-            this.particles[i] = this.createRandomParticle(p1.id);
           }
         }
       }
     }
+
+    for(let i = 0; i < this.particles.length; i++){
+      const p1 = this.particles[i];
+      if(p1.weight === 0){
+        delete this.lines[`${p1.id}m`];
+        for(let j = 0; j < this.particles.length; j++){
+          if(i === j) continue;
+          const p2 = this.particles[j];
+          delete this.lines[lineId(p1.id, p2.id)]
+        }
+      }
+    }
+
+    this.particles = this.particles.filter(p=>p.weight>0);
 
     this.particles = this.particles.map((p)=>{
       p.updatePosition();
@@ -96,13 +109,42 @@ class App extends Component {
       return p;
     })
 
+    const newParticles = [];
+    this.particles.forEach((p)=>{
+      if(p.weight > 50){
+        const fragments = p.explode();
+        newParticles.push(...fragments);
+      }
+    });
+
+    for(let newParticle of newParticles){
+      newParticle.id = this.currentId++;
+      const l = new ForceLine(this.mouseX, newParticle.x, this.mouseY, newParticle.y);
+      this.lines[`${newParticle.id}m`] = l;
+      for(let particle of this.particles){
+        const l = new ForceLine(newParticle.x, particle.x, newParticle.y, particle.y);
+        const lid = lineId(newParticle.id, particle.id);
+        this.lines[lid] = l;
+      }
+      this.particles.push(newParticle);
+    }
+
     for(let i = 0; i < this.particles.length; i++){
       let p1 = this.particles[i];
       this.lines[`${p1.id}m`].update({x1: this.mouseX, x2: p1.x, y1: this.mouseY, y2: p1.y});
       for(let j = i; j < this.particles.length; j++){
         if(i === j) continue;
         let p2 = this.particles[j];
-        this.lines[`${p1.id}${p2.id}`].update({x1: p1.x, x2: p2.x, y1: p1.y, y2: p2.y});
+        const lid = lineId(p1.id, p2.id);
+        try{
+          this.lines[lid].update({x1: p1.x, x2: p2.x, y1: p1.y, y2: p2.y});
+        } catch (err) {
+          console.log(lid);
+          console.log(p1);
+          console.log(p2);
+          console.log(this.lines);
+          throw err;
+        }
       }
     }
 

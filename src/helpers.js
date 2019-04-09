@@ -1,4 +1,4 @@
-const G = 1;
+const G = 1.5;
 
 const getRandomInt = (max) => {
   return Math.floor(Math.random() * Math.floor(max));
@@ -18,4 +18,14 @@ const calculateForce = (w1, w2, dist) => {
   return G*((w1 * w2)/Math.pow(dist,2));
 }
 
-export { pointDistance, calculateForce, getRandomFloat, getRandomInt };
+const leftPad = (num, digits) => {
+  const numStr = String(num);
+  const zereosRequired = digits - numStr.length;
+  return '0'.repeat(zereosRequired) + numStr;
+}
+
+const lineId = (id1, id2) => {
+  return [id1, id2].sort((a,b)=>a-b).map(v=>leftPad(v, 5)).join('');
+}
+
+export { pointDistance, calculateForce, getRandomFloat, getRandomInt, lineId };
