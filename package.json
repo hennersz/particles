@@ -24,6 +24,6 @@
     "not op_mini all"
   ],
   "devDependencies": {
-    "commit-and-tag-version": "^12.0.0"
+    "commit-and-tag-version": "^13.0.0"
   }
 }
